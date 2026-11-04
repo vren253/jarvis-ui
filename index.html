@@ -9,8 +9,24 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-dark">
+
+  <!-- BOOT-ЭКРАН -->
+  <div class="boot" id="boot">
+    <div class="boot-orb"></div>
+    <div class="boot-text" id="bootText">JARVIS</div>
+    <div class="boot-bar"><div class="boot-bar-fill" id="bootBar"></div></div>
+  </div>
+
+  <!-- КУРСОР -->
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ФОН -->
   <canvas class="bg-particles" id="bgCanvas"></canvas>
   <div class="bg"></div>
+  <div class="aurora a1"></div>
+  <div class="aurora a2"></div>
+  <div class="aurora a3"></div>
   <div class="glow"></div>
   <div class="grain"></div>
   <div class="scanlines"></div>
@@ -27,7 +43,7 @@
 
     <main class="content">
       <section class="page active" id="page-home">
-        <h1 id="greeting">Добрый вечер, Сэр.</h1>
+        <h1 id="greeting"></h1>
         <p class="sub">Голосовой ассистент. Скажите «Джарвис», чтобы начать.</p>
 
         <div class="orb-scene" id="orbScene">
@@ -47,9 +63,7 @@
         <div class="pet-wrap" id="pet-wrap">
           <div class="pet" id="pet" data-state="idle">
             <div class="pet-ear l"></div><div class="pet-ear r"></div>
-            <div class="pet-face">
-              <div class="pet-eye"></div><div class="pet-eye"></div>
-            </div>
+            <div class="pet-face"><div class="pet-eye"></div><div class="pet-eye"></div></div>
             <div class="pet-tail"></div>
           </div>
         </div>
@@ -58,12 +72,12 @@
       <section class="page" id="page-skills">
         <h1>Навыки</h1>
         <div class="cards">
-          <div class="card"><h3>◈ Окна</h3><p>«Закрой окна», «сверни всё»</p></div>
-          <div class="card"><h3>♪ Звук</h3><p>«Звук 100», «громче»</p></div>
-          <div class="card"><h3>⌕ Поиск</h3><p>«Забей в яндексе …»</p></div>
-          <div class="card"><h3>◉ Vision</h3><p>«Есть ли ошибка?»</p></div>
-          <div class="card"><h3>✉ ТГ</h3><p>«Напиши Маше …»</p></div>
-          <div class="card"><h3>▦ Судоку</h3><p>«Какая цифра в клетке?»</p></div>
+          <div class="card hud"><h3>◈ Окна</h3><p>«Закрой окна», «сверни всё»</p></div>
+          <div class="card hud"><h3>♪ Звук</h3><p>«Звук 100», «громче»</p></div>
+          <div class="card hud"><h3>⌕ Поиск</h3><p>«Забей в яндексе …»</p></div>
+          <div class="card hud"><h3>◉ Vision</h3><p>«Есть ли ошибка?»</p></div>
+          <div class="card hud"><h3>✉ ТГ</h3><p>«Напиши Маше …»</p></div>
+          <div class="card hud"><h3>▦ Судоку</h3><p>«Какая цифра в клетке?»</p></div>
         </div>
       </section>
 
@@ -75,42 +89,30 @@
 
       <section class="page" id="page-settings">
         <h1>Настройки</h1>
-        <div class="field">
-          <label>Обращение</label>
-          <input id="set-address" type="text" placeholder="Сэр">
-        </div>
-        <div class="field">
-          <label>Тема</label>
+        <div class="field"><label>Обращение</label>
+          <input id="set-address" type="text" placeholder="Сэр"></div>
+        <div class="field"><label>Тема</label>
           <select id="set-theme">
             <option value="theme-dark">Тёмная</option>
             <option value="theme-light">Светлая</option>
             <option value="theme-neon">Неон</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Цвет сферы</label>
-          <input id="set-orb-color" type="color" value="#50c8ff">
-        </div>
-        <div class="field">
-          <label>Интенсивность свечения: <span id="lbl-intensity">60</span>%</label>
-          <input id="set-orb-intensity" type="range" min="0" max="100" value="60">
-        </div>
-        <div class="field">
-          <label>Скорость пульсации: <span id="lbl-speed">3</span>с</label>
-          <input id="set-orb-speed" type="range" min="1" max="8" value="3">
-        </div>
-        <div class="field">
-          <label>Размер сферы: <span id="lbl-size">180</span>px</label>
-          <input id="set-orb-size" type="range" min="120" max="320" value="180">
-        </div>
-        <div class="field">
-          <label>Прозрачность меню: <span id="lbl-alpha">60</span>%</label>
-          <input id="set-menu-alpha" type="range" min="0" max="100" value="60">
-        </div>
-        <div class="field row">
-          <label>Питомец</label>
-          <input id="set-pet" type="checkbox" checked>
-        </div>
+          </select></div>
+        <div class="field"><label>Цвет сферы</label>
+          <input id="set-orb-color" type="color" value="#50c8ff"></div>
+        <div class="field"><label>Второй цвет (перелив)</label>
+          <input id="set-orb-color2" type="color" value="#c04dff"></div>
+        <div class="field"><label>Интенсивность свечения: <span id="lbl-intensity">60</span>%</label>
+          <input id="set-orb-intensity" type="range" min="0" max="100" value="60"></div>
+        <div class="field"><label>Скорость пульсации: <span id="lbl-speed">3</span>с</label>
+          <input id="set-orb-speed" type="range" min="1" max="8" value="3"></div>
+        <div class="field"><label>Размер сферы: <span id="lbl-size">180</span>px</label>
+          <input id="set-orb-size" type="range" min="120" max="320" value="180"></div>
+        <div class="field"><label>Прозрачность меню: <span id="lbl-alpha">60</span>%</label>
+          <input id="set-menu-alpha" type="range" min="0" max="100" value="60"></div>
+        <div class="field row"><label>Питомец</label>
+          <input id="set-pet" type="checkbox" checked></div>
+        <div class="field row"><label>Звук интерфейса</label>
+          <input id="set-sound" type="checkbox" checked></div>
         <button class="btn primary" id="save-settings">Сохранить</button>
         <div class="saved" id="saved-msg"></div>
       </section>
