@@ -7,31 +7,45 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="theme-dark">
-  <div class="app">
-    <div class="bg"></div>
-    <div class="glow"></div>
+  <canvas class="bg-particles" id="bgCanvas"></canvas>
+  <div class="bg"></div>
+  <div class="glow"></div>
+  <div class="scanlines"></div>
 
+  <div class="app">
     <aside class="nav">
       <div class="brand">J A R V I S</div>
-      <button class="nav-btn active" data-page="home">Главная</button>
-      <button class="nav-btn" data-page="skills">Навыки</button>
-      <button class="nav-btn" data-page="scenarios">Сценарии</button>
-      <button class="nav-btn" data-page="settings">Настройки</button>
-      <div class="nav-status" id="status">Ядро не запущено</div>
+      <button class="nav-btn active" data-page="home"><span class="ic">◈</span> Главная</button>
+      <button class="nav-btn" data-page="skills"><span class="ic">⚙</span> Навыки</button>
+      <button class="nav-btn" data-page="scenarios"><span class="ic">▤</span> Сценарии</button>
+      <button class="nav-btn" data-page="settings"><span class="ic">✦</span> Настройки</button>
+      <div class="nav-status" id="status">● Ядро не запущено</div>
     </aside>
 
     <main class="content">
       <section class="page active" id="page-home">
         <h1 id="greeting">Добрый вечер, Сэр.</h1>
         <p class="sub">Голосовой ассистент. Скажите «Джарвис», чтобы начать.</p>
-        <div class="orb-wrap">
-          <div class="orb" id="orb"></div>
-          <div class="orb-ring"></div>
+
+        <div class="orb-scene">
+          <canvas class="orb-particles" id="orbCanvas"></canvas>
+          <div class="orb3d">
+            <div class="orb-core"></div>
+            <div class="orb-shine"></div>
+            <div class="orb-ring r1"></div>
+            <div class="orb-ring r2"></div>
+            <div class="orb-ring r3"></div>
+          </div>
         </div>
         <div class="orb-state" id="orb-state">сон</div>
+
         <div class="pet-wrap" id="pet-wrap">
           <div class="pet" id="pet" data-state="idle">
-            <div class="pet-eye"></div><div class="pet-eye"></div>
+            <div class="pet-ear l"></div><div class="pet-ear r"></div>
+            <div class="pet-face">
+              <div class="pet-eye"></div><div class="pet-eye"></div>
+            </div>
+            <div class="pet-tail"></div>
           </div>
         </div>
       </section>
@@ -39,12 +53,12 @@
       <section class="page" id="page-skills">
         <h1>Навыки</h1>
         <div class="cards">
-          <div class="card"><h3>Окна</h3><p>«Закрой окна», «сверни всё»</p></div>
-          <div class="card"><h3>Звук</h3><p>«Звук 100», «громче»</p></div>
-          <div class="card"><h3>Поиск</h3><p>«Забей в яндексе …»</p></div>
-          <div class="card"><h3>Vision</h3><p>«Есть ли ошибка?»</p></div>
-          <div class="card"><h3>ТГ</h3><p>«Напиши Маше …»</p></div>
-          <div class="card"><h3>Судоку</h3><p>«Какая цифра в клетке?»</p></div>
+          <div class="card"><h3>◈ Окна</h3><p>«Закрой окна», «сверни всё»</p></div>
+          <div class="card"><h3>♪ Звук</h3><p>«Звук 100», «громче»</p></div>
+          <div class="card"><h3>⌕ Поиск</h3><p>«Забей в яндексе …»</p></div>
+          <div class="card"><h3>◉ Vision</h3><p>«Есть ли ошибка?»</p></div>
+          <div class="card"><h3>✉ ТГ</h3><p>«Напиши Маше …»</p></div>
+          <div class="card"><h3>▦ Судоку</h3><p>«Какая цифра в клетке?»</p></div>
         </div>
       </section>
 
@@ -61,7 +75,6 @@
           <label>Обращение</label>
           <input id="set-address" type="text" placeholder="Сэр">
         </div>
-
         <div class="field">
           <label>Тема</label>
           <select id="set-theme">
@@ -70,37 +83,30 @@
             <option value="theme-neon">Неон</option>
           </select>
         </div>
-
         <div class="field">
           <label>Цвет сферы</label>
           <input id="set-orb-color" type="color" value="#50c8ff">
         </div>
-
         <div class="field">
           <label>Интенсивность свечения: <span id="lbl-intensity">60</span>%</label>
           <input id="set-orb-intensity" type="range" min="0" max="100" value="60">
         </div>
-
         <div class="field">
           <label>Скорость пульсации: <span id="lbl-speed">3</span>с</label>
           <input id="set-orb-speed" type="range" min="1" max="8" value="3">
         </div>
-
         <div class="field">
           <label>Размер сферы: <span id="lbl-size">180</span>px</label>
-          <input id="set-orb-size" type="range" min="100" max="320" value="180">
+          <input id="set-orb-size" type="range" min="120" max="320" value="180">
         </div>
-
         <div class="field">
           <label>Прозрачность меню: <span id="lbl-alpha">60</span>%</label>
           <input id="set-menu-alpha" type="range" min="0" max="100" value="60">
         </div>
-
         <div class="field row">
           <label>Питомец</label>
           <input id="set-pet" type="checkbox" checked>
         </div>
-
         <button class="btn primary" id="save-settings">Сохранить</button>
         <div class="saved" id="saved-msg"></div>
       </section>
