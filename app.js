@@ -6,6 +6,7 @@ const DEFAULTS = {
 let state = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("jarvis")||"{}") };
 const save = () => localStorage.setItem("jarvis", JSON.stringify(state));
 
+// навигация
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -64,21 +65,54 @@ function renderGreeting() {
   document.getElementById("greeting").textContent=`${t}, ${state.address}.`;
 }
 
-// питомец: клик + моргание
+// питомец
 const pet=document.getElementById("pet");
-pet.onclick = () => {
-  pet.classList.add("bounce");
-  setTimeout(()=>pet.classList.remove("bounce"),400);
-};
-setInterval(()=>{
-  pet.classList.add("blink");
-  setTimeout(()=>pet.classList.remove("blink"),150);
-}, 4000 + Math.random()*3000);
+if(pet){
+  pet.onclick = () => { pet.classList.add("bounce");
+    setTimeout(()=>pet.classList.remove("bounce"),400); };
+  setInterval(()=>{ pet.classList.add("blink");
+    setTimeout(()=>pet.classList.remove("blink"),150); }, 4000 + Math.random()*3000);
+}
+
+// фон-частицы (звёзды)
+const bg=document.getElementById("bgCanvas");
+if(bg){
+  const ctx=bg.getContext("2d");
+  let W,H,stars=[];
+  function resize(){ W=bg.width=window.innerWidth; H=bg.height=window.innerHeight;
+    stars=Array.from({length:90},()=>({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.6+.4, s:Math.random()*.3+.05 })); }
+  resize(); window.addEventListener("resize",resize);
+  (function loop(){ ctx.clearRect(0,0,W,H);
+    for(const st of stars){ st.y+=st.s; if(st.y>H){ st.y=0; st.x=Math.random()*W; }
+      ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(120,200,255,${.3+st.r*.3})`; ctx.fill(); }
+    requestAnimationFrame(loop); })();
+}
+
+// частицы внутри сферы (3D-иллюзия)
+const oc=document.getElementById("orbCanvas");
+if(oc){
+  const ctx=oc.getContext("2d");
+  const W=oc.width=260, H=oc.height=260, cx=W/2, cy=H/2, R=88;
+  const parts=Array.from({length:46},()=>({
+    a:Math.random()*Math.PI*2, r:R*(.35+Math.random()*.55),
+    s:.0015+Math.random()*.004, z:.4+Math.random()*.6 }));
+  (function loop(){ ctx.clearRect(0,0,W,H);
+    for(const p of parts){ p.a+=p.s;
+      const x=cx+Math.cos(p.a)*p.r, y=cy+Math.sin(p.a)*p.r*.5;
+      ctx.beginPath(); ctx.arc(x,y,1.5*p.z,0,Math.PI*2);
+      ctx.fillStyle=`rgba(120,210,255,${.35+p.z*.5})`; ctx.fill(); }
+    requestAnimationFrame(loop); })();
+}
 
 // состояния сферы (для будущего голосового контура)
-function setOrbState(s){ document.body.classList.remove("state-listen","state-think","state-speak","state-sleep");
+function setOrbState(s){
+  document.body.classList.remove("state-listen","state-think","state-speak","state-sleep");
   document.body.classList.add("state-"+s);
-  document.getElementById("orb-state").textContent=s; }
+  document.getElementById("orb-state").textContent=s;
+}
 
 function fillForm() {
   $addr.value=state.address; $theme.value=state.theme;
