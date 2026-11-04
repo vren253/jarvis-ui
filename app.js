@@ -1,14 +1,63 @@
 const DEFAULTS = {
   address:"Сэр", theme:"theme-dark",
-  orbColor:"#50c8ff", orbIntensity:60, orbSpeed:3, orbSize:180,
-  menuAlpha:60, petEnabled:true
+  orbColor:"#50c8ff", orbColor2:"#c04dff",
+  orbIntensity:60, orbSpeed:3, orbSize:180,
+  menuAlpha:60, petEnabled:true, soundEnabled:true
 };
 let state = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("jarvis")||"{}") };
 const save = () => localStorage.setItem("jarvis", JSON.stringify(state));
 
-// навигация
+// ===== ЗВУК UI (Web Audio, без файлов) =====
+let audioCtx = null;
+function beep(freq=660, dur=0.06, type="sine", vol=0.03){
+  if(!state.soundEnabled) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.value=vol;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+dur);
+  } catch(e){}
+}
+
+// ===== КУРСОР =====
+const cursor = document.getElementById("cursor");
+const ring = document.getElementById("cursorRing");
+if(cursor && ring){
+  document.addEventListener("mousemove", e => {
+    cursor.style.left = e.clientX+"px"; cursor.style.top = e.clientY+"px";
+    ring.style.left = e.clientX+"px"; ring.style.top = e.clientY+"px";
+  });
+  document.querySelectorAll("button, a, input, select, .pet, .orb-scene").forEach(el => {
+    el.addEventListener("mouseenter", () => ring.classList.add("hot"));
+    el.addEventListener("mouseleave", () => ring.classList.remove("hot"));
+  });
+}
+
+// ===== BOOT =====
+const boot = document.getElementById("boot");
+const bootBar = document.getElementById("bootBar");
+const bootText = document.getElementById("bootText");
+const bootLines = ["JARVIS", "ЗАГРУЗКА ЯДРА", "СИСТЕМЫ ОНЛАЙН"];
+let bi = 0;
+if(boot){
+  const iv = setInterval(() => {
+    bi += 8;
+    bootBar.style.width = Math.min(bi,100) + "%";
+    if(bi === 32) bootText.textContent = bootLines[1];
+    if(bi === 64) bootText.textContent = bootLines[2];
+    if(bi >= 100){
+      clearInterval(iv);
+      setTimeout(() => { boot.classList.add("hide"); beep(880,.1,"triangle",.05); }, 400);
+    }
+  }, 60);
+}
+
+// ===== НАВИГАЦИЯ =====
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
+    beep(520,.04);
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
@@ -19,6 +68,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 function applyAll() {
   const r = document.documentElement.style;
   r.setProperty("--orb-color", state.orbColor);
+  r.setProperty("--orb-color2", state.orbColor2);
   r.setProperty("--orb-intensity", state.orbIntensity/100);
   r.setProperty("--orb-speed", state.orbSpeed + "s");
   r.setProperty("--orb-size", state.orbSize + "px");
@@ -30,13 +80,16 @@ function applyAll() {
 const $addr=document.getElementById("set-address");
 const $theme=document.getElementById("set-theme");
 const $color=document.getElementById("set-orb-color");
+const $color2=document.getElementById("set-orb-color2");
 const $int=document.getElementById("set-orb-intensity");
 const $spd=document.getElementById("set-orb-speed");
 const $size=document.getElementById("set-orb-size");
 const $alpha=document.getElementById("set-menu-alpha");
 const $pet=document.getElementById("set-pet");
+const $snd=document.getElementById("set-sound");
 
 $color.oninput = e => { state.orbColor=e.target.value; applyAll(); };
+$color2.oninput = e => { state.orbColor2=e.target.value; applyAll(); };
 $int.oninput = e => { state.orbIntensity=+e.target.value;
   document.getElementById("lbl-intensity").textContent=e.target.value; applyAll(); };
 $spd.oninput = e => { state.orbSpeed=+e.target.value;
@@ -51,63 +104,117 @@ document.getElementById("save-settings").onclick = () => {
   state.address=$addr.value.trim()||"Сэр";
   state.theme=$theme.value;
   state.petEnabled=$pet.checked;
-  save(); applyAll(); renderGreeting();
+  state.soundEnabled=$snd.checked;
+  save(); applyAll(); renderGreeting(); beep(720,.08,"triangle",.05);
   const m=document.getElementById("saved-msg");
   m.textContent="Сохранено, "+state.address+".";
   setTimeout(()=>m.textContent="",2000);
 };
 
+// ===== TYPEWRITER приветствия =====
 function renderGreeting() {
   const h=new Date().getHours();
   let t="Добрый день";
   if(h<6) t="Доброй ночи"; else if(h<12) t="Доброе утро";
   else if(h<18) t="Добрый день"; else t="Добрый вечер";
-  document.getElementById("greeting").textContent=`${t}, ${state.address}.`;
+  const full = `${t}, ${state.address}.`;
+  const el = document.getElementById("greeting");
+  el.textContent = "";
+  let i = 0;
+  clearInterval(el._tw);
+  el._tw = setInterval(() => {
+    el.textContent += full[i] || "";
+    i++;
+    if(i > full.length) clearInterval(el._tw);
+  }, 45);
 }
 
-// питомец
+// ===== ПИТОМЕЦ =====
 const pet=document.getElementById("pet");
 if(pet){
-  pet.onclick = () => { pet.classList.add("bounce");
+  pet.onclick = () => { pet.classList.add("bounce"); beep(880,.07,"square",.03);
     setTimeout(()=>pet.classList.remove("bounce"),400); };
   setInterval(()=>{ pet.classList.add("blink");
     setTimeout(()=>pet.classList.remove("blink"),150); }, 4000 + Math.random()*3000);
 }
 
-// фон-частицы (звёзды)
+// ===== ПАРАЛЛАКС СФЕРЫ + ИСКРЫ ПРИ КЛИКЕ =====
+const scene=document.getElementById("orbScene");
+const orb3d=document.getElementById("orb3d");
+if(scene && orb3d){
+  scene.addEventListener("mousemove", e => {
+    const r=scene.getBoundingClientRect();
+    const dx=(e.clientX-r.left-r.width/2)/r.width;
+    const dy=(e.clientY-r.top-r.height/2)/r.height;
+    orb3d.style.transform=`rotateY(${dx*14}deg) rotateX(${-dy*14}deg)`;
+  });
+  scene.addEventListener("mouseleave", () => { orb3d.style.transform=""; });
+  scene.addEventListener("click", e => { burstSparks(e.clientX, e.clientY); beep(1000,.08,"sine",.04); });
+}
+
+// ===== CANVAS ИСКРЫ =====
+const spark = document.createElement("canvas");
+spark.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:97;";
+document.body.appendChild(spark);
+const sctx = spark.getContext("2d");
+function resizeSpark(){ spark.width=innerWidth; spark.height=innerHeight; }
+resizeSpark(); addEventListener("resize", resizeSpark);
+let sparks=[];
+function burstSparks(x,y){
+  for(let i=0;i<24;i++){
+    const a=Math.random()*Math.PI*2, sp=2+Math.random()*4;
+    sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,
+      color: Math.random()<.5 ? state.orbColor : state.orbColor2});
+  }
+}
+(function sparkLoop(){
+  sctx.clearRect(0,0,spark.width,spark.height);
+  sparks = sparks.filter(s => s.life > 0);
+  for(const s of sparks){
+    s.x+=s.vx; s.y+=s.vy; s.vy+=.08; s.life-=.03;
+    sctx.beginPath(); sctx.arc(s.x,s.y,2.2*s.life,0,Math.PI*2);
+    sctx.fillStyle=s.color; sctx.globalAlpha=s.life;
+    sctx.shadowBlur=10; sctx.shadowColor=s.color; sctx.fill(); sctx.globalAlpha=1;
+  }
+  requestAnimationFrame(sparkLoop);
+})();
+
+// ===== ФОН-ЗВЁЗДЫ =====
 const bg=document.getElementById("bgCanvas");
 if(bg){
   const ctx=bg.getContext("2d");
   let W,H,stars=[];
-  function resize(){ W=bg.width=window.innerWidth; H=bg.height=window.innerHeight;
-    stars=Array.from({length:90},()=>({
+  function resize(){ W=bg.width=innerWidth; H=bg.height=innerHeight;
+    stars=Array.from({length:80},()=>({
       x:Math.random()*W, y:Math.random()*H,
-      r:Math.random()*1.6+.4, s:Math.random()*.3+.05 })); }
-  resize(); window.addEventListener("resize",resize);
+      r:Math.random()*1.6+.3, s:Math.random()*.25+.04, z:.3+Math.random()*.7 })); }
+  resize(); addEventListener("resize",resize);
   (function loop(){ ctx.clearRect(0,0,W,H);
     for(const st of stars){ st.y+=st.s; if(st.y>H){ st.y=0; st.x=Math.random()*W; }
-      ctx.beginPath(); ctx.arc(st.x,st.y,st.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(120,200,255,${.3+st.r*.3})`; ctx.fill(); }
+      ctx.beginPath(); ctx.arc(st.x,st.y,st.r*st.z,0,Math.PI*2);
+      ctx.fillStyle=`rgba(140,210,255,${.2+st.z*.5})`; ctx.fill(); }
     requestAnimationFrame(loop); })();
 }
 
-// частицы внутри сферы (3D-иллюзия)
+// ===== ЧАСТИЦЫ СФЕРЫ =====
 const oc=document.getElementById("orbCanvas");
 if(oc){
   const ctx=oc.getContext("2d");
-  const W=oc.width=260, H=oc.height=260, cx=W/2, cy=H/2, R=88;
-  const parts=Array.from({length:46},()=>({
-    a:Math.random()*Math.PI*2, r:R*(.35+Math.random()*.55),
-    s:.0015+Math.random()*.004, z:.4+Math.random()*.6 }));
+  const W=oc.width=280, H=oc.height=280, cx=W/2, cy=H/2, R=96;
+  const parts=Array.from({length:44},()=>({
+    a:Math.random()*Math.PI*2, r:R*(.3+Math.random()*.6),
+    s:.0012+Math.random()*.003, z:.35+Math.random()*.65, tw:Math.random()*Math.PI*2 }));
   (function loop(){ ctx.clearRect(0,0,W,H);
-    for(const p of parts){ p.a+=p.s;
+    for(const p of parts){ p.a+=p.s; p.tw+=.03;
       const x=cx+Math.cos(p.a)*p.r, y=cy+Math.sin(p.a)*p.r*.5;
-      ctx.beginPath(); ctx.arc(x,y,1.5*p.z,0,Math.PI*2);
-      ctx.fillStyle=`rgba(120,210,255,${.35+p.z*.5})`; ctx.fill(); }
+      const alpha=(.25+p.z*.5)*(.7+.3*Math.sin(p.tw));
+      ctx.beginPath(); ctx.arc(x,y,1.6*p.z,0,Math.PI*2);
+      ctx.fillStyle=`rgba(150,220,255,${alpha})`;
+      ctx.shadowBlur=6*p.z; ctx.shadowColor="rgba(120,210,255,.8)";
+      ctx.fill(); ctx.shadowBlur=0; }
     requestAnimationFrame(loop); })();
 }
 
-// состояния сферы (для будущего голосового контура)
 function setOrbState(s){
   document.body.classList.remove("state-listen","state-think","state-speak","state-sleep");
   document.body.classList.add("state-"+s);
@@ -116,9 +223,10 @@ function setOrbState(s){
 
 function fillForm() {
   $addr.value=state.address; $theme.value=state.theme;
-  $color.value=state.orbColor; $int.value=state.orbIntensity;
-  $spd.value=state.orbSpeed; $size.value=state.orbSize;
-  $alpha.value=state.menuAlpha; $pet.checked=state.petEnabled;
+  $color.value=state.orbColor; $color2.value=state.orbColor2;
+  $int.value=state.orbIntensity; $spd.value=state.orbSpeed;
+  $size.value=state.orbSize; $alpha.value=state.menuAlpha;
+  $pet.checked=state.petEnabled; $snd.checked=state.soundEnabled;
   document.getElementById("lbl-intensity").textContent=state.orbIntensity;
   document.getElementById("lbl-speed").textContent=state.orbSpeed;
   document.getElementById("lbl-size").textContent=state.orbSize;
