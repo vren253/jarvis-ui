@@ -2,20 +2,30 @@ const DEFAULTS = {
   address:"Сэр", theme:"theme-dark",
   orbColor:"#50c8ff", orbColor2:"#c04dff",
   orbIntensity:60, orbSpeed:3, orbSize:180,
-  menuAlpha:60, petEnabled:true, soundEnabled:true
+  menuAlpha:60, petHome:true, soundEnabled:true, mood:100
 };
 let state = { ...DEFAULTS, ...JSON.parse(localStorage.getItem("jarvis")||"{}") };
 const save = () => localStorage.setItem("jarvis", JSON.stringify(state));
 
-// ===== ЗВУК UI (Web Audio, без файлов) =====
+// ===== ЗВУК =====
 let audioCtx = null;
-function beep(freq=660, dur=0.06, type="sine", vol=0.03){
-  if(!state.soundEnabled) return;
+function unlockAudio(){
   try {
     audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  } catch(e){}
+}
+document.addEventListener("touchstart", unlockAudio, {once:true});
+document.addEventListener("click", unlockAudio, {once:true});
+
+function beep(freq=660, dur=0.06, type="sine", vol=0.18){
+  if(!state.soundEnabled) return;
+  try {
+    unlockAudio(); if(!audioCtx) return;
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type=type; o.frequency.value=freq;
     g.gain.value=vol;
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
     o.connect(g); g.connect(audioCtx.destination);
     o.start(); o.stop(audioCtx.currentTime+dur);
   } catch(e){}
@@ -29,7 +39,7 @@ if(cursor && ring){
     cursor.style.left = e.clientX+"px"; cursor.style.top = e.clientY+"px";
     ring.style.left = e.clientX+"px"; ring.style.top = e.clientY+"px";
   });
-  document.querySelectorAll("button, a, input, select, .pet, .orb-scene").forEach(el => {
+  document.querySelectorAll("button, a, input, select, .pet-big, .orb-scene").forEach(el => {
     el.addEventListener("mouseenter", () => ring.classList.add("hot"));
     el.addEventListener("mouseleave", () => ring.classList.remove("hot"));
   });
@@ -43,14 +53,11 @@ const bootLines = ["JARVIS", "ЗАГРУЗКА ЯДРА", "СИСТЕМЫ ОНЛ
 let bi = 0;
 if(boot){
   const iv = setInterval(() => {
-    bi += 8;
-    bootBar.style.width = Math.min(bi,100) + "%";
+    bi += 8; bootBar.style.width = Math.min(bi,100) + "%";
     if(bi === 32) bootText.textContent = bootLines[1];
     if(bi === 64) bootText.textContent = bootLines[2];
-    if(bi >= 100){
-      clearInterval(iv);
-      setTimeout(() => { boot.classList.add("hide"); beep(880,.1,"triangle",.05); }, 400);
-    }
+    if(bi >= 100){ clearInterval(iv);
+      setTimeout(() => { boot.classList.add("hide"); beep(880,.1,"triangle",.06); }, 400); }
   }, 60);
 }
 
@@ -74,7 +81,6 @@ function applyAll() {
   r.setProperty("--orb-size", state.orbSize + "px");
   r.setProperty("--menu-alpha", state.menuAlpha/100);
   document.body.className = state.theme;
-  document.getElementById("pet-wrap").style.display = state.petEnabled ? "flex" : "none";
 }
 
 const $addr=document.getElementById("set-address");
@@ -85,8 +91,8 @@ const $int=document.getElementById("set-orb-intensity");
 const $spd=document.getElementById("set-orb-speed");
 const $size=document.getElementById("set-orb-size");
 const $alpha=document.getElementById("set-menu-alpha");
-const $pet=document.getElementById("set-pet");
 const $snd=document.getElementById("set-sound");
+const $petHome=document.getElementById("set-pet-home");
 
 $color.oninput = e => { state.orbColor=e.target.value; applyAll(); };
 $color2.oninput = e => { state.orbColor2=e.target.value; applyAll(); };
@@ -99,19 +105,19 @@ $size.oninput = e => { state.orbSize=+e.target.value;
 $alpha.oninput = e => { state.menuAlpha=+e.target.value;
   document.getElementById("lbl-alpha").textContent=e.target.value; applyAll(); };
 $theme.onchange = e => { state.theme=e.target.value; applyAll(); };
+$petHome.onchange = e => { state.petHome=e.target.checked; save(); };
 
 document.getElementById("save-settings").onclick = () => {
   state.address=$addr.value.trim()||"Сэр";
   state.theme=$theme.value;
-  state.petEnabled=$pet.checked;
   state.soundEnabled=$snd.checked;
-  save(); applyAll(); renderGreeting(); beep(720,.08,"triangle",.05);
+  save(); applyAll(); renderGreeting(); beep(720,.08,"triangle",.06);
   const m=document.getElementById("saved-msg");
   m.textContent="Сохранено, "+state.address+".";
   setTimeout(()=>m.textContent="",2000);
 };
 
-// ===== TYPEWRITER приветствия =====
+// ===== TYPEWRITER =====
 function renderGreeting() {
   const h=new Date().getHours();
   let t="Добрый день";
@@ -119,26 +125,34 @@ function renderGreeting() {
   else if(h<18) t="Добрый день"; else t="Добрый вечер";
   const full = `${t}, ${state.address}.`;
   const el = document.getElementById("greeting");
-  el.textContent = "";
-  let i = 0;
+  el.textContent = ""; let i = 0;
   clearInterval(el._tw);
   el._tw = setInterval(() => {
-    el.textContent += full[i] || "";
-    i++;
+    el.textContent += full[i] || ""; i++;
     if(i > full.length) clearInterval(el._tw);
   }, 45);
 }
 
 // ===== ПИТОМЕЦ =====
-const pet=document.getElementById("pet");
-if(pet){
-  pet.onclick = () => { pet.classList.add("bounce"); beep(880,.07,"square",.03);
-    setTimeout(()=>pet.classList.remove("bounce"),400); };
-  setInterval(()=>{ pet.classList.add("blink");
-    setTimeout(()=>pet.classList.remove("blink"),150); }, 4000 + Math.random()*3000);
+const petBig=document.getElementById("petBig");
+if(petBig){
+  petBig.onclick = () => { petBig.classList.add("bounce"); beep(880,.07,"square",.05);
+    setTimeout(()=>petBig.classList.remove("bounce"),400); };
+  setInterval(()=>{ petBig.classList.add("blink");
+    setTimeout(()=>petBig.classList.remove("blink"),150); }, 4000 + Math.random()*3000);
+
+  const moodFill=document.getElementById("moodFill");
+  const moodText=document.getElementById("moodText");
+  function updateMood(){ state.mood=Math.max(0,Math.min(100,state.mood));
+    moodFill.style.width=state.mood+"%"; moodText.textContent=Math.round(state.mood)+"%"; save(); }
+  document.getElementById("petFeed").onclick = () => { state.mood+=20; updateMood(); beep(660,.07); };
+  document.getElementById("petPlay").onclick = () => { state.mood+=15; updateMood(); beep(780,.07); };
+  document.getElementById("petSleep").onclick = () => { state.mood-=5; updateMood(); beep(440,.1); };
+  updateMood();
+  setInterval(()=>{ state.mood-=2; updateMood(); }, 60000);
 }
 
-// ===== ПАРАЛЛАКС СФЕРЫ + ИСКРЫ ПРИ КЛИКЕ =====
+// ===== ПАРАЛЛАКС + ИСКРЫ =====
 const scene=document.getElementById("orbScene");
 const orb3d=document.getElementById("orb3d");
 if(scene && orb3d){
@@ -149,10 +163,10 @@ if(scene && orb3d){
     orb3d.style.transform=`rotateY(${dx*14}deg) rotateX(${-dy*14}deg)`;
   });
   scene.addEventListener("mouseleave", () => { orb3d.style.transform=""; });
-  scene.addEventListener("click", e => { burstSparks(e.clientX, e.clientY); beep(1000,.08,"sine",.04); });
+  scene.addEventListener("click", e => { burstSparks(e.clientX, e.clientY); beep(1000,.08,"sine",.05); });
 }
 
-// ===== CANVAS ИСКРЫ =====
+// ===== ИСКРЫ =====
 const spark = document.createElement("canvas");
 spark.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:97;";
 document.body.appendChild(spark);
@@ -196,22 +210,31 @@ if(bg){
     requestAnimationFrame(loop); })();
 }
 
-// ===== ЧАСТИЦЫ СФЕРЫ =====
+// ===== ЧАСТИЦЫ СФЕРЫ (3D-орбиты) =====
 const oc=document.getElementById("orbCanvas");
 if(oc){
   const ctx=oc.getContext("2d");
-  const W=oc.width=280, H=oc.height=280, cx=W/2, cy=H/2, R=96;
-  const parts=Array.from({length:44},()=>({
-    a:Math.random()*Math.PI*2, r:R*(.3+Math.random()*.6),
-    s:.0012+Math.random()*.003, z:.35+Math.random()*.65, tw:Math.random()*Math.PI*2 }));
+  const W=oc.width=320, H=oc.height=320, cx=W/2, cy=H/2, R=110;
+  const parts=Array.from({length:60},()=>({
+    a:Math.random()*Math.PI*2, tilt:(Math.random()-.5)*0.9,
+    r:R*(.4+Math.random()*.55), s:.001+Math.random()*.0035,
+    z:.4+Math.random()*.6, tw:Math.random()*Math.PI*2 }));
   (function loop(){ ctx.clearRect(0,0,W,H);
-    for(const p of parts){ p.a+=p.s; p.tw+=.03;
-      const x=cx+Math.cos(p.a)*p.r, y=cy+Math.sin(p.a)*p.r*.5;
-      const alpha=(.25+p.z*.5)*(.7+.3*Math.sin(p.tw));
-      ctx.beginPath(); ctx.arc(x,y,1.6*p.z,0,Math.PI*2);
-      ctx.fillStyle=`rgba(150,220,255,${alpha})`;
-      ctx.shadowBlur=6*p.z; ctx.shadowColor="rgba(120,210,255,.8)";
-      ctx.fill(); ctx.shadowBlur=0; }
+    for(const p of parts){
+      p.a += p.s; p.tw += .03;
+      const ex = Math.cos(p.a) * p.r;
+      const ey = Math.sin(p.a) * p.r * 0.55;
+      const x = cx + ex;
+      const y = cy + ey + p.tilt * Math.sin(p.a) * 20;
+      const depth = (Math.sin(p.a) + 1) / 2;
+      const sz = (1.4 + depth * 2.2) * p.z;
+      const alpha = (0.15 + depth * 0.75) * (.6 + .4*Math.sin(p.tw));
+      ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(160,225,255,${alpha})`;
+      ctx.shadowBlur = 8 * depth * p.z;
+      ctx.shadowColor = "rgba(120,210,255,.9)";
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
     requestAnimationFrame(loop); })();
 }
 
@@ -226,7 +249,7 @@ function fillForm() {
   $color.value=state.orbColor; $color2.value=state.orbColor2;
   $int.value=state.orbIntensity; $spd.value=state.orbSpeed;
   $size.value=state.orbSize; $alpha.value=state.menuAlpha;
-  $pet.checked=state.petEnabled; $snd.checked=state.soundEnabled;
+  $snd.checked=state.soundEnabled; $petHome.checked=state.petHome;
   document.getElementById("lbl-intensity").textContent=state.orbIntensity;
   document.getElementById("lbl-speed").textContent=state.orbSpeed;
   document.getElementById("lbl-size").textContent=state.orbSize;
